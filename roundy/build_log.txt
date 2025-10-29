@@ -1,0 +1,77 @@
+Setting top to                           : /workspaces/watchface_roundy/roundy 
+Setting out to                           : /workspaces/watchface_roundy/roundy/build 
+Checking for program webpack             : /home/vscode/.pebble-sdk/SDKs/current/node_modules/.bin/webpack 
+Found Pebble SDK for emery in:           : /home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/emery 
+Checking for program gcc,cc              : arm-none-eabi-gcc 
+Checking for program ar                  : arm-none-eabi-ar 
+Found Pebble SDK for diorite in:         : /home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/diorite 
+Checking for program gcc,cc              : arm-none-eabi-gcc 
+Checking for program ar                  : arm-none-eabi-ar 
+Found Pebble SDK for chalk in:           : /home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/chalk 
+Checking for program gcc,cc              : arm-none-eabi-gcc 
+Checking for program ar                  : arm-none-eabi-ar 
+Found Pebble SDK for basalt in:          : /home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt 
+Checking for program gcc,cc              : arm-none-eabi-gcc 
+Checking for program ar                  : arm-none-eabi-ar 
+Found Pebble SDK for aplite in:          : /home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/aplite 
+Checking for program gcc,cc              : arm-none-eabi-gcc 
+Checking for program ar                  : arm-none-eabi-ar 
+'configure' finished successfully (0.052s)
+Waf: Entering directory `/workspaces/watchface_roundy/roundy/build'
+[ 1/79] message_key_header:  -> build/include/message_keys.auto.h
+[ 2/79] message_key_definitions:  -> build/src/message_keys.auto.c
+[ 3/79] message_key_json:  -> build/js/message_keys.json
+[ 4/79] emery | subst: ../../../home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/common/pebble_app.ld.template -> build/emery/pebble_app.ld.auto
+[ 5/79] emery | appinfo.auto.c:  -> build/emery/appinfo.auto.c
+[ 6/79] emery | appinfo.json:  -> build/appinfo.json
+[ 7/79] emery | resource_ball:  -> build/emery/system_resources.resball
+[ 8/79] emery | c: build/src/message_keys.auto.c -> build/src/message_keys.auto.c.37.o
+[ 9/79] emery | generate_pbpack: build/emery/system_resources.resball -> build/emery/app_resources.pbpack
+[10/79] emery | generate_resource_id_definitions: build/emery/system_resources.resball -> build/emery/src/resource_ids.auto.c
+[11/79] emery | generate_resource_id_header: build/emery/system_resources.resball -> build/emery/src/resource_ids.auto.h
+[12/79] emery | c: build/emery/src/resource_ids.auto.c -> build/emery/src/resource_ids.auto.c.37.o
+[13/79] emery | c: src/c/myfirstproject.c -> build/src/c/myfirstproject.c.37.o
+[14/79] emery | c: build/emery/appinfo.auto.c -> build/emery/appinfo.auto.c.37.o
+../src/c/myfirstproject.c:49:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:49:3: error: (near initialization for 'DIGITS[2]') [-Werror]
+../src/c/myfirstproject.c:49:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:49:3: error: (near initialization for 'DIGITS[2]') [-Werror]
+../src/c/myfirstproject.c:59:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:59:3: error: (near initialization for 'DIGITS[3]') [-Werror]
+../src/c/myfirstproject.c:59:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:59:3: error: (near initialization for 'DIGITS[3]') [-Werror]
+../src/c/myfirstproject.c:69:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:69:3: error: (near initialization for 'DIGITS[4]') [-Werror]
+../src/c/myfirstproject.c:69:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:69:3: error: (near initialization for 'DIGITS[4]') [-Werror]
+../src/c/myfirstproject.c:79:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:79:3: error: (near initialization for 'DIGITS[5]') [-Werror]
+../src/c/myfirstproject.c:79:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:79:3: error: (near initialization for 'DIGITS[5]') [-Werror]
+../src/c/myfirstproject.c:89:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:89:3: error: (near initialization for 'DIGITS[6]') [-Werror]
+../src/c/myfirstproject.c:89:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:89:3: error: (near initialization for 'DIGITS[6]') [-Werror]
+../src/c/myfirstproject.c:108:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:108:3: error: (near initialization for 'DIGITS[8]') [-Werror]
+../src/c/myfirstproject.c:108:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:108:3: error: (near initialization for 'DIGITS[8]') [-Werror]
+../src/c/myfirstproject.c:118:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:118:3: error: (near initialization for 'DIGITS[9]') [-Werror]
+../src/c/myfirstproject.c:118:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:118:3: error: (near initialization for 'DIGITS[9]') [-Werror]
+../src/c/myfirstproject.c:130:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:130:3: error: (near initialization for 'COLON_PATTERN') [-Werror]
+../src/c/myfirstproject.c:130:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:130:3: error: (near initialization for 'COLON_PATTERN') [-Werror]
+../src/c/myfirstproject.c:131:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:131:3: error: (near initialization for 'COLON_PATTERN') [-Werror]
+../src/c/myfirstproject.c:131:3: error: excess elements in array initializer [-Werror]
+../src/c/myfirstproject.c:131:3: error: (near initialization for 'COLON_PATTERN') [-Werror]
+cc1: all warnings being treated as errors
+Waf: Leaving directory `/workspaces/watchface_roundy/roundy/build'
+Build failed
+ -> task in 'emery/pebble-app.elf' failed (exit status 1): 
+	{task 129542563153296: c myfirstproject.c -> myfirstproject.c.37.o}
+['arm-none-eabi-gcc', '-std=c99', '-mcpu=cortex-m3', '-mthumb', '-ffunction-sections', '-fdata-sections', '-g', '-fPIE', '-Os', '-D_TIME_H_', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-Wno-error=unused-function', '-Wno-error=unused-variable', '-I/home/vscode/.pebble-sdk/SDKs/current/sdk-core/pebble/emery/include', '-I/workspaces/watchface_roundy/roundy/build', '-I/workspaces/watchface_roundy/roundy', '-I/workspaces/watchface_roundy/roundy/build/include', '-I/workspaces/watchface_roundy/roundy/include', '-I/workspaces/watchface_roundy/roundy/build/src', '-I/workspaces/watchface_roundy/roundy/src', '-I/workspaces/watchface_roundy/roundy/build/emery', '-I/workspaces/watchface_roundy/roundy/emery', '-DRELEASE', '-DPBL_PLATFORM_EMERY', '-DPBL_COLOR', '-DPBL_RECT', '-DPBL_MICROPHONE', '-DPBL_SMARTSTRAP', '-DPBL_HEALTH', '-DPBL_SMARTSTRAP_POWER', '-DPBL_COMPASS', '-DPBL_DISPLAY_WIDTH=200', '-DPBL_DISPLAY_HEIGHT=228', '-DPBL_SDK_3', '-D__FILE_NAME__="myfirstproject.c"', '../src/c/myfirstproject.c', '-c', '-o', 'src/c/myfirstproject.c.37.o']
+Build failed.

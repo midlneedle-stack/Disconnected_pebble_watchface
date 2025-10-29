@@ -1,6 +1,6 @@
 {
   "name": "roundy",
-  "author": "MakeAwesomeHappen",
+  "author": "midlneedle",
   "version": "1.0.0",
   "keywords": ["pebble-app"],
   "private": true,
@@ -18,7 +18,7 @@
       "emery"
     ],
     "watchapp": {
-      "watchface": false
+      "watchface": true
     },
     "messageKeys": [
       "dummy"
