@@ -3,11 +3,11 @@
 #include <pebble.h>
 
 static inline GColor roundy_palette_background_fill(void) {
-  return PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorWhite);
+  return GColorBlack;
 }
 
 static inline GColor roundy_palette_background_stroke(void) {
-  return GColorBlack;
+  return PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
 }
 
 static inline GColor roundy_palette_digit_fill(void) {

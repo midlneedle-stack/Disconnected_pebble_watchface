@@ -30,7 +30,7 @@ static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row) {
   const int origin_y = frame.origin.y;
   for (int idx = 0; idx < ROUNDY_CELL_SIZE; ++idx) {
     graphics_draw_pixel(ctx,
-                        GPoint(origin_x + (ROUNDY_CELL_SIZE - 1 - idx), origin_y + idx));
+    GPoint(origin_x + idx, origin_y + idx));
   }
 }
 
@@ -47,7 +47,7 @@ static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col
     }
 
     for (int col = 0; col < glyph->width; ++col) {
-      if (mask & (1 << col)) {
+      if (mask & (1 << (glyph->width - 1 - col))) {
         prv_draw_digit_cell(ctx, cell_col + col, cell_row + row);
       }
     }
