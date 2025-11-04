@@ -13,7 +13,7 @@
 #define DIAG_FRAME_MS 16 /* target frame interval in ms (approx 60Hz -> 16ms) */
 #define DIAG_DURATION_MS 120 /* total animation duration in ms (short and snappy) */
 /* initial delay before starting the first animation frame (user requested value) */
-#define DIAG_START_DELAY_MS 240
+#define DIAG_START_DELAY_MS 180
 
 /* choose animation color based on progress: three steps
  * 0.0 - 0.333: #555555
@@ -31,19 +31,19 @@ static GColor prv_anim_color(float p) {
 }
 
 typedef struct {
-  int16_t digits[ROUNDY_DIGIT_COUNT];
+  int16_t digits[CONNECTED_DIGIT_COUNT];
   bool use_24h_time;
   /* animation state */
   AppTimer *anim_timer;
   float diag_progress;
-} RoundyDigitLayerState;
+} ConnectedDigitLayerState;
 
-struct RoundyDigitLayer {
+struct ConnectedDigitLayer {
   Layer *layer;
-  RoundyDigitLayerState *state;
+  ConnectedDigitLayerState *state;
 };
 
-static inline RoundyDigitLayerState *prv_get_state(RoundyDigitLayer *layer) {
+static inline ConnectedDigitLayerState *prv_get_state(ConnectedDigitLayer *layer) {
   return layer ? layer->state : NULL;
 }
 
@@ -54,33 +54,32 @@ static inline RoundyDigitLayerState *prv_get_state(RoundyDigitLayer *layer) {
  */
 static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row,
                                float progress) {
-  const GRect frame = roundy_cell_frame(cell_col, cell_row);
+  const GRect frame = connected_cell_frame(cell_col, cell_row);
   graphics_fill_rect(ctx, frame, 0, GCornerNone);
 
   const int origin_x = frame.origin.x;
   const int origin_y = frame.origin.y;
   const float p = progress;
-  for (int idx = 0; idx < ROUNDY_CELL_SIZE; ++idx) {
+  for (int idx = 0; idx < CONNECTED_CELL_SIZE; ++idx) {
     const int from_x = idx;
-    const int to_x = (ROUNDY_CELL_SIZE - 1 - idx);
+    const int to_x = (CONNECTED_CELL_SIZE - 1 - idx);
     const int x = origin_x + (int)roundf((1.0f - p) * from_x + p * to_x);
     const int y = origin_y + idx;
     graphics_draw_pixel(ctx, GPoint(x, y));
   }
 }
 
-static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col,
+static void prv_draw_glyph(GContext *ctx, const ConnectedGlyph *glyph, int cell_col,
                            int cell_row, float progress) {
   if (!glyph) {
     return;
   }
 
-  for (int row = 0; row < ROUNDY_DIGIT_HEIGHT; ++row) {
+  for (int row = 0; row < CONNECTED_DIGIT_HEIGHT; ++row) {
     const uint8_t mask = glyph->rows[row];
     if (!mask) {
       continue;
     }
-
     for (int col = 0; col < glyph->width; ++col) {
       if (mask & (1 << (glyph->width - 1 - col))) {
         prv_draw_digit_cell(ctx, cell_col + col, cell_row + row, progress);
@@ -90,58 +89,58 @@ static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col
 }
 
 static void prv_draw_digit(GContext *ctx, int16_t digit, int cell_col, int cell_row, float progress) {
-  if (digit < ROUNDY_GLYPH_ZERO || digit > ROUNDY_GLYPH_NINE) {
+  if (digit < CONNECTED_GLYPH_ZERO || digit > CONNECTED_GLYPH_NINE) {
     return;
   }
 
-  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[digit], cell_col, cell_row, progress);
+  prv_draw_glyph(ctx, &CONNECTED_GLYPHS[digit], cell_col, cell_row, progress);
 }
 
 static void prv_draw_colon(GContext *ctx, int cell_col, int cell_row, float progress) {
-  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[ROUNDY_GLYPH_COLON], cell_col, cell_row, progress);
+  prv_draw_glyph(ctx, &CONNECTED_GLYPHS[CONNECTED_GLYPH_COLON], cell_col, cell_row, progress);
 }
 
 static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
-  RoundyDigitLayerState *state = layer_get_data(layer);
+  ConnectedDigitLayerState *state = layer_get_data(layer);
   if (!state) {
     return;
   }
 
-  graphics_context_set_fill_color(ctx, roundy_palette_digit_fill());
+  graphics_context_set_fill_color(ctx, connected_palette_digit_fill());
   /* During animation select a step color for stroke (diagonals). After animation
    * finishes, fall back to the normal palette stroke color. */
-  GColor stroke_color = roundy_palette_digit_stroke();
+  GColor stroke_color = connected_palette_digit_stroke();
   if (state->diag_progress < 1.0f) {
     stroke_color = prv_anim_color(state->diag_progress);
   }
   graphics_context_set_stroke_color(ctx, stroke_color);
 
-  int cell_col = ROUNDY_DIGIT_START_COL;
-  const int cell_row = ROUNDY_DIGIT_START_ROW;
+  int cell_col = CONNECTED_DIGIT_START_COL;
+  const int cell_row = CONNECTED_DIGIT_START_ROW;
 
   prv_draw_digit(ctx, state->digits[0], cell_col, cell_row, state->diag_progress);
-  cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
+  cell_col += CONNECTED_DIGIT_WIDTH + CONNECTED_DIGIT_GAP;
 
   prv_draw_digit(ctx, state->digits[1], cell_col, cell_row, state->diag_progress);
   /* pass animation progress into drawing to interpolate diagonals */
-  cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
+  cell_col += CONNECTED_DIGIT_WIDTH + CONNECTED_DIGIT_GAP;
 
   prv_draw_colon(ctx, cell_col, cell_row, state->diag_progress);
-  cell_col += ROUNDY_DIGIT_COLON_WIDTH + ROUNDY_DIGIT_GAP;
+  cell_col += CONNECTED_DIGIT_COLON_WIDTH + CONNECTED_DIGIT_GAP;
 
   prv_draw_digit(ctx, state->digits[2], cell_col, cell_row, state->diag_progress);
-  cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
+  cell_col += CONNECTED_DIGIT_WIDTH + CONNECTED_DIGIT_GAP;
 
   prv_draw_digit(ctx, state->digits[3], cell_col, cell_row, state->diag_progress);
 }
 
-RoundyDigitLayer *roundy_digit_layer_create(GRect frame) {
-  RoundyDigitLayer *layer = calloc(1, sizeof(*layer));
+ConnectedDigitLayer *connected_digit_layer_create(GRect frame) {
+  ConnectedDigitLayer *layer = calloc(1, sizeof(*layer));
   if (!layer) {
     return NULL;
   }
 
-  layer->layer = layer_create_with_data(frame, sizeof(RoundyDigitLayerState));
+  layer->layer = layer_create_with_data(frame, sizeof(ConnectedDigitLayerState));
   if (!layer->layer) {
     free(layer);
     return NULL;
@@ -149,7 +148,7 @@ RoundyDigitLayer *roundy_digit_layer_create(GRect frame) {
 
   layer->state = layer_get_data(layer->layer);
   layer->state->use_24h_time = clock_is_24h_style();
-  for (int i = 0; i < ROUNDY_DIGIT_COUNT; ++i) {
+  for (int i = 0; i < CONNECTED_DIGIT_COUNT; ++i) {
     layer->state->digits[i] = -1;
   }
 
@@ -157,13 +156,14 @@ RoundyDigitLayer *roundy_digit_layer_create(GRect frame) {
   return layer;
 }
 
-void roundy_digit_layer_destroy(RoundyDigitLayer *layer) {
+
+void connected_digit_layer_destroy(ConnectedDigitLayer *layer) {
   if (!layer) {
     return;
   }
   if (layer->layer) {
     /* cancel any running animation timer stored in layer data */
-    RoundyDigitLayerState *state = layer_get_data(layer->layer);
+    ConnectedDigitLayerState *state = layer_get_data(layer->layer);
     if (state && state->anim_timer) {
       app_timer_cancel(state->anim_timer);
       state->anim_timer = NULL;
@@ -173,17 +173,17 @@ void roundy_digit_layer_destroy(RoundyDigitLayer *layer) {
   free(layer);
 }
 
-Layer *roundy_digit_layer_get_layer(RoundyDigitLayer *layer) {
+Layer *connected_digit_layer_get_layer(ConnectedDigitLayer *layer) {
   return layer ? layer->layer : NULL;
 }
 
-/* Animation timer callback: ctx is the Layer* whose data is RoundyDigitLayerState */
+/* Animation timer callback: ctx is the Layer* whose data is ConnectedDigitLayerState */
 static void prv_diag_anim_timer(void *ctx) {
   Layer *layer = (Layer *)ctx;
   if (!layer) {
     return;
   }
-  RoundyDigitLayerState *state = layer_get_data(layer);
+  ConnectedDigitLayerState *state = layer_get_data(layer);
   if (!state) {
     return;
   }
@@ -204,11 +204,11 @@ static void prv_diag_anim_timer(void *ctx) {
   layer_mark_dirty(layer);
 }
 
-void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
+void connected_digit_layer_start_diag_flip(ConnectedDigitLayer *rdl) {
   if (!rdl || !rdl->layer) {
     return;
   }
-  RoundyDigitLayerState *state = layer_get_data(rdl->layer);
+  ConnectedDigitLayerState *state = layer_get_data(rdl->layer);
   if (!state) {
     return;
   }
@@ -224,8 +224,8 @@ void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
   state->anim_timer = app_timer_register(DIAG_START_DELAY_MS, prv_diag_anim_timer, rdl->layer);
 }
 
-void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_info) {
-  RoundyDigitLayerState *state = prv_get_state(layer);
+void connected_digit_layer_set_time(ConnectedDigitLayer *layer, const struct tm *time_info) {
+  ConnectedDigitLayerState *state = prv_get_state(layer);
   if (!state || !time_info) {
     return;
   }
@@ -239,7 +239,7 @@ void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_
     }
   }
 
-  int16_t new_digits[ROUNDY_DIGIT_COUNT] = {
+  int16_t new_digits[CONNECTED_DIGIT_COUNT] = {
     hour / 10,
     hour % 10,
     time_info->tm_min / 10,
@@ -251,7 +251,7 @@ void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_
   }
 
   bool changed = (state->use_24h_time != use_24h);
-  for (int i = 0; i < ROUNDY_DIGIT_COUNT; ++i) {
+  for (int i = 0; i < CONNECTED_DIGIT_COUNT; ++i) {
     if (state->digits[i] != new_digits[i]) {
       state->digits[i] = new_digits[i];
       changed = true;
@@ -267,16 +267,16 @@ void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_
   }
 }
 
-void roundy_digit_layer_refresh_time(RoundyDigitLayer *layer) {
+void connected_digit_layer_refresh_time(ConnectedDigitLayer *layer) {
   time_t now = time(NULL);
   struct tm *time_info = localtime(&now);
   if (!time_info) {
     return;
   }
-  roundy_digit_layer_set_time(layer, time_info);
+  connected_digit_layer_set_time(layer, time_info);
 }
 
-void roundy_digit_layer_force_redraw(RoundyDigitLayer *layer) {
+void connected_digit_layer_force_redraw(ConnectedDigitLayer *layer) {
   if (layer && layer->layer) {
     layer_mark_dirty(layer->layer);
   }
