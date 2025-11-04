@@ -12,6 +12,8 @@
 /* Animation tuning */
 #define DIAG_FRAME_MS 16 /* target frame interval in ms (approx 60Hz -> 16ms) */
 #define DIAG_DURATION_MS 120 /* total animation duration in ms (short and snappy) */
+/* initial delay before starting the first animation frame (user requested ~3x) */
+#define DIAG_START_DELAY_MS (DIAG_FRAME_MS * 3)
 
 /* choose animation color based on progress: three steps
  * 0.0 - 0.333: #555555
@@ -218,8 +220,8 @@ void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
   state->diag_progress = 0.0f;
   /* start after a very short delay (FRAME_MS) to create the requested small delay
    * and drive a fast animation */
-  /* schedule first frame after one FRAME_MS interval */
-  state->anim_timer = app_timer_register(DIAG_FRAME_MS, prv_diag_anim_timer, rdl->layer);
+  /* schedule first frame after a slightly larger startup delay */
+  state->anim_timer = app_timer_register(DIAG_START_DELAY_MS, prv_diag_anim_timer, rdl->layer);
 }
 
 void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_info) {
