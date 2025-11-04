@@ -26,6 +26,8 @@ static void prv_window_load(Window *window) {
   if (s_digit_layer) {
     layer_add_child(root, roundy_digit_layer_get_layer(s_digit_layer));
     roundy_digit_layer_refresh_time(s_digit_layer);
+    /* start a quick diagonal flip animation when the watchface appears */
+    roundy_digit_layer_start_diag_flip(s_digit_layer);
   }
 }
 
