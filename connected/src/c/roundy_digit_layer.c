@@ -13,7 +13,7 @@
 #define DIAG_FRAME_MS 16 /* target frame interval in ms (approx 60Hz -> 16ms) */
 #define DIAG_DURATION_MS 120 /* total animation duration in ms (short and snappy) */
 /* initial delay before starting the first animation frame (user requested value) */
-#define DIAG_START_DELAY_MS 360
+#define DIAG_START_DELAY_MS 180
 
 /* choose animation color based on progress: three steps
  * 0.0 - 0.333: #555555
