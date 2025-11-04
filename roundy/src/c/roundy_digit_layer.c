@@ -9,6 +9,21 @@
 #include "roundy_palette.h"
 #include <math.h>
 
+/* choose animation color based on progress: three steps
+ * 0.0 - 0.333: #555555
+ * 0.333 - 0.666: #AAAAAA
+ * 0.666 - 1.0: #FFFFFF
+ */
+static GColor prv_anim_color(float p) {
+  if (p < (1.0f / 3.0f)) {
+    return PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
+  } else if (p < (2.0f / 3.0f)) {
+    return PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
+  } else {
+    return PBL_IF_COLOR_ELSE(GColorFromRGB(0xFF, 0xFF, 0xFF), GColorWhite);
+  }
+}
+
 typedef struct {
   int16_t digits[ROUNDY_DIGIT_COUNT];
   bool use_24h_time;
@@ -87,7 +102,13 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
   }
 
   graphics_context_set_fill_color(ctx, roundy_palette_digit_fill());
-  graphics_context_set_stroke_color(ctx, roundy_palette_digit_stroke());
+  /* During animation select a step color for stroke (diagonals). After animation
+   * finishes, fall back to the normal palette stroke color. */
+  GColor stroke_color = roundy_palette_digit_stroke();
+  if (state->diag_progress < 1.0f) {
+    stroke_color = prv_anim_color(state->diag_progress);
+  }
+  graphics_context_set_stroke_color(ctx, stroke_color);
 
   int cell_col = ROUNDY_DIGIT_START_COL;
   const int cell_row = ROUNDY_DIGIT_START_ROW;
@@ -160,9 +181,8 @@ static void prv_diag_anim_timer(void *ctx) {
   if (!state) {
     return;
   }
-
-  const int FRAME_MS = 30;
-  const int DURATION_MS = 200; /* quick and smooth */
+  const int FRAME_MS = 5; /* user requested small delay/fast frames */
+  const int DURATION_MS = 200; /* quick and smooth total duration */
   const float delta = (float)FRAME_MS / (float)DURATION_MS;
 
   state->diag_progress += delta;
@@ -192,7 +212,9 @@ void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
     state->anim_timer = NULL;
   }
   state->diag_progress = 0.0f;
-  state->anim_timer = app_timer_register(30, prv_diag_anim_timer, rdl->layer);
+  /* start after a very short delay (FRAME_MS) to create the requested small delay
+   * and drive a fast animation */
+  state->anim_timer = app_timer_register(5, prv_diag_anim_timer, rdl->layer);
 }
 
 void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_info) {
