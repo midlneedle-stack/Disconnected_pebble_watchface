@@ -1,5 +1,8 @@
 #include <pebble.h>
+#include <stdlib.h>
+#include <time.h>
 
+#include "roundy_animation.h"
 #include "roundy_background_layer.h"
 #include "roundy_digit_layer.h"
 #include "roundy_palette.h"
@@ -27,7 +30,11 @@ static void prv_window_load(Window *window) {
     layer_add_child(root, roundy_digit_layer_get_layer(s_digit_layer));
     roundy_digit_layer_refresh_time(s_digit_layer);
     /* start a quick diagonal flip animation when the watchface appears */
-    roundy_digit_layer_start_diag_flip(s_digit_layer);
+    const RoundyAnimDirection direction = roundy_anim_random_direction();
+    if (s_background_layer) {
+      roundy_background_layer_start_diag_flip(s_background_layer, direction);
+    }
+    roundy_digit_layer_start_diag_flip(s_digit_layer, direction);
   }
 }
 
@@ -42,6 +49,8 @@ static void prv_window_unload(Window *window) {
 }
 
 static void prv_init(void) {
+  srand((unsigned)time(NULL));
+
   s_main_window = window_create();
   window_set_background_color(s_main_window, roundy_palette_window_background());
   window_set_window_handlers(s_main_window, (WindowHandlers){

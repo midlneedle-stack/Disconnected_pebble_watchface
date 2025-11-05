@@ -4,38 +4,49 @@
 #include <string.h>
 #include <time.h>
 
+#include "roundy_animation.h"
 #include "roundy_glyphs.h"
 #include "roundy_layout.h"
 #include "roundy_palette.h"
 #include <math.h>
 
-/* Animation tuning */
-#define DIAG_FRAME_MS 16 /* target frame interval in ms (approx 60Hz -> 16ms) */
-#define DIAG_DURATION_MS 120 /* total animation duration in ms (short and snappy) */
 /* initial delay before starting the first animation frame (user requested value) */
-#define DIAG_START_DELAY_MS 240
+#define DIAG_START_DELAY_MS ROUNDY_DIAG_ANIM_INITIAL_DELAY_MS
 
-/* choose animation color based on progress: three steps
- * 0.0 - 0.333: #555555
- * 0.333 - 0.666: #AAAAAA
- * 0.666 - 1.0: #FFFFFF
- */
-static GColor prv_anim_color(float p) {
-  if (p < (1.0f / 3.0f)) {
-    return PBL_IF_COLOR_ELSE(GColorFromRGB(0x55, 0x55, 0x55), GColorBlack);
-  } else if (p < (2.0f / 3.0f)) {
-    return PBL_IF_COLOR_ELSE(GColorFromRGB(0xAA, 0xAA, 0xAA), GColorBlack);
-  } else {
-    return PBL_IF_COLOR_ELSE(GColorFromRGB(0xFF, 0xFF, 0xFF), GColorWhite);
+static inline GColor prv_digit_stroke_color(bool flipped) {
+  return flipped ? roundy_anim_bright_stroke() : roundy_anim_dim_stroke();
+}
+
+static inline bool prv_direction_is_vertical(RoundyAnimDirection direction) {
+  return (direction == ROUNDY_ANIM_DIR_TOP_DOWN || direction == ROUNDY_ANIM_DIR_BOTTOM_UP);
+}
+
+static inline int16_t prv_direction_max_index(RoundyAnimDirection direction) {
+  return prv_direction_is_vertical(direction) ? (ROUNDY_GRID_ROWS - 1) : (ROUNDY_GRID_COLS - 1);
+}
+
+static inline int16_t prv_direction_index_for_cell(RoundyAnimDirection direction, int col, int row) {
+  switch (direction) {
+    case ROUNDY_ANIM_DIR_TOP_DOWN:
+      return row;
+    case ROUNDY_ANIM_DIR_BOTTOM_UP:
+      return (ROUNDY_GRID_ROWS - 1 - row);
+    case ROUNDY_ANIM_DIR_LEFT_RIGHT:
+      return col;
+    case ROUNDY_ANIM_DIR_RIGHT_LEFT:
+      return (ROUNDY_GRID_COLS - 1 - col);
+    default:
+      return row;
   }
 }
 
 typedef struct {
   int16_t digits[ROUNDY_DIGIT_COUNT];
   bool use_24h_time;
-  /* animation state */
   AppTimer *anim_timer;
-  float diag_progress;
+  RoundyAnimDirection direction;
+  int16_t anim_index;
+  int16_t anim_max;
 } RoundyDigitLayerState;
 
 struct RoundyDigitLayer {
@@ -48,18 +59,15 @@ static inline RoundyDigitLayerState *prv_get_state(RoundyDigitLayer *layer) {
 }
 
 /* Draw a single cell. The diagonal inside the cell is interpolated between
- * the original (\) and the opposite (/) based on layer->diag_progress.
- * progress == 0.0 -> original (x = origin_x + idx)
- * progress == 1.0 -> flipped (x = origin_x + (cell_size-1-idx))
+ * the original (\) and the opposite (/) based on flipped state.
  */
-static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row,
-                               float progress) {
+static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row, bool flipped) {
   const GRect frame = roundy_cell_frame(cell_col, cell_row);
   graphics_fill_rect(ctx, frame, 0, GCornerNone);
 
   const int origin_x = frame.origin.x;
   const int origin_y = frame.origin.y;
-  const float p = progress;
+  const float p = flipped ? 1.0f : 0.0f;
   /* skip the border pixels to leave the outer frame empty */
   const int start_idx = 1;
   const int end_idx = ROUNDY_CELL_SIZE - 2;
@@ -72,9 +80,9 @@ static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row,
   }
 }
 
-static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col,
-                           int cell_row, float progress) {
-  if (!glyph) {
+static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col, int cell_row,
+                           const RoundyDigitLayerState *state) {
+  if (!glyph || !state) {
     return;
   }
 
@@ -85,23 +93,34 @@ static void prv_draw_glyph(GContext *ctx, const RoundyGlyph *glyph, int cell_col
     }
 
     for (int col = 0; col < glyph->width; ++col) {
-      if (mask & (1 << (glyph->width - 1 - col))) {
-        prv_draw_digit_cell(ctx, cell_col + col, cell_row + row, progress);
+      if (!(mask & (1 << (glyph->width - 1 - col)))) {
+        continue;
       }
+      const int absolute_col = cell_col + col;
+      const int absolute_row = cell_row + row;
+      const int16_t cell_index =
+          prv_direction_index_for_cell(state->direction, absolute_col, absolute_row);
+      const bool flipped = (state->anim_index >= cell_index);
+      graphics_context_set_stroke_color(ctx, prv_digit_stroke_color(flipped));
+      prv_draw_digit_cell(ctx, absolute_col, absolute_row, flipped);
     }
   }
 }
 
-static void prv_draw_digit(GContext *ctx, int16_t digit, int cell_col, int cell_row, float progress) {
-  if (digit < ROUNDY_GLYPH_ZERO || digit > ROUNDY_GLYPH_NINE) {
+static void prv_draw_digit(GContext *ctx, int16_t digit, int cell_col, int cell_row,
+                           const RoundyDigitLayerState *state) {
+  if (!state || digit < ROUNDY_GLYPH_ZERO || digit > ROUNDY_GLYPH_NINE) {
     return;
   }
-
-  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[digit], cell_col, cell_row, progress);
+  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[digit], cell_col, cell_row, state);
 }
 
-static void prv_draw_colon(GContext *ctx, int cell_col, int cell_row, float progress) {
-  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[ROUNDY_GLYPH_COLON], cell_col, cell_row, progress);
+static void prv_draw_colon(GContext *ctx, int cell_col, int cell_row,
+                           const RoundyDigitLayerState *state) {
+  if (!state) {
+    return;
+  }
+  prv_draw_glyph(ctx, &ROUNDY_GLYPHS[ROUNDY_GLYPH_COLON], cell_col, cell_row, state);
 }
 
 static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
@@ -111,31 +130,24 @@ static void prv_digit_layer_update_proc(Layer *layer, GContext *ctx) {
   }
 
   graphics_context_set_fill_color(ctx, roundy_palette_digit_fill());
-  /* During animation select a step color for stroke (diagonals). After animation
-   * finishes, fall back to the normal palette stroke color. */
-  GColor stroke_color = roundy_palette_digit_stroke();
-  if (state->diag_progress < 1.0f) {
-    stroke_color = prv_anim_color(state->diag_progress);
-  }
-  graphics_context_set_stroke_color(ctx, stroke_color);
+  graphics_context_set_stroke_color(ctx, prv_digit_stroke_color(false));
 
   int cell_col = ROUNDY_DIGIT_START_COL;
   const int cell_row = ROUNDY_DIGIT_START_ROW;
 
-  prv_draw_digit(ctx, state->digits[0], cell_col, cell_row, state->diag_progress);
+  prv_draw_digit(ctx, state->digits[0], cell_col, cell_row, state);
   cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
 
-  prv_draw_digit(ctx, state->digits[1], cell_col, cell_row, state->diag_progress);
-  /* pass animation progress into drawing to interpolate diagonals */
+  prv_draw_digit(ctx, state->digits[1], cell_col, cell_row, state);
   cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
 
-  prv_draw_colon(ctx, cell_col, cell_row, state->diag_progress);
+  prv_draw_colon(ctx, cell_col, cell_row, state);
   cell_col += ROUNDY_DIGIT_COLON_WIDTH + ROUNDY_DIGIT_GAP;
 
-  prv_draw_digit(ctx, state->digits[2], cell_col, cell_row, state->diag_progress);
+  prv_draw_digit(ctx, state->digits[2], cell_col, cell_row, state);
   cell_col += ROUNDY_DIGIT_WIDTH + ROUNDY_DIGIT_GAP;
 
-  prv_draw_digit(ctx, state->digits[3], cell_col, cell_row, state->diag_progress);
+  prv_draw_digit(ctx, state->digits[3], cell_col, cell_row, state);
 }
 
 RoundyDigitLayer *roundy_digit_layer_create(GRect frame) {
@@ -152,6 +164,10 @@ RoundyDigitLayer *roundy_digit_layer_create(GRect frame) {
 
   layer->state = layer_get_data(layer->layer);
   layer->state->use_24h_time = clock_is_24h_style();
+  layer->state->direction = ROUNDY_ANIM_DIR_TOP_DOWN;
+  layer->state->anim_index = -1;
+  layer->state->anim_max = prv_direction_max_index(layer->state->direction);
+  layer->state->anim_timer = NULL;
   for (int i = 0; i < ROUNDY_DIGIT_COUNT; ++i) {
     layer->state->digits[i] = -1;
   }
@@ -165,7 +181,6 @@ void roundy_digit_layer_destroy(RoundyDigitLayer *layer) {
     return;
   }
   if (layer->layer) {
-    /* cancel any running animation timer stored in layer data */
     RoundyDigitLayerState *state = layer_get_data(layer->layer);
     if (state && state->anim_timer) {
       app_timer_cancel(state->anim_timer);
@@ -190,24 +205,22 @@ static void prv_diag_anim_timer(void *ctx) {
   if (!state) {
     return;
   }
-  const int FRAME_MS = DIAG_FRAME_MS;
-  const int DURATION_MS = DIAG_DURATION_MS;
-  const float delta = (float)FRAME_MS / (float)DURATION_MS;
 
-  state->diag_progress += delta;
-  if (state->diag_progress >= 1.0f) {
-    state->diag_progress = 1.0f;
-    /* animation finished */
-    state->anim_timer = NULL;
+  if (state->anim_index < state->anim_max) {
+    state->anim_index++;
+  }
+
+  if (state->anim_index < state->anim_max) {
+    state->anim_timer =
+        app_timer_register(ROUNDY_DIAG_ANIM_RETURN_DELAY_MS, prv_diag_anim_timer, layer);
   } else {
-    /* re-register next frame */
-    state->anim_timer = app_timer_register(FRAME_MS, prv_diag_anim_timer, layer);
+    state->anim_timer = NULL;
   }
 
   layer_mark_dirty(layer);
 }
 
-void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
+void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl, RoundyAnimDirection direction) {
   if (!rdl || !rdl->layer) {
     return;
   }
@@ -215,15 +228,17 @@ void roundy_digit_layer_start_diag_flip(RoundyDigitLayer *rdl) {
   if (!state) {
     return;
   }
-  /* Cancel existing timer if any */
+
   if (state->anim_timer) {
     app_timer_cancel(state->anim_timer);
     state->anim_timer = NULL;
   }
-  state->diag_progress = 0.0f;
-  /* start after a very short delay (FRAME_MS) to create the requested small delay
-   * and drive a fast animation */
-  /* schedule first frame after a slightly larger startup delay */
+
+  state->direction = direction;
+  state->anim_max = prv_direction_max_index(direction);
+  state->anim_index = -1;
+
+  layer_mark_dirty(rdl->layer);
   state->anim_timer = app_timer_register(DIAG_START_DELAY_MS, prv_diag_anim_timer, rdl->layer);
 }
 
@@ -243,10 +258,10 @@ void roundy_digit_layer_set_time(RoundyDigitLayer *layer, const struct tm *time_
   }
 
   int16_t new_digits[ROUNDY_DIGIT_COUNT] = {
-    hour / 10,
-    hour % 10,
-    time_info->tm_min / 10,
-    time_info->tm_min % 10,
+      hour / 10,
+      hour % 10,
+      time_info->tm_min / 10,
+      time_info->tm_min % 10,
   };
 
   if (!use_24h && hour < 10) {
