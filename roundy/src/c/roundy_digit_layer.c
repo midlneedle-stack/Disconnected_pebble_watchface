@@ -60,7 +60,10 @@ static void prv_draw_digit_cell(GContext *ctx, int cell_col, int cell_row,
   const int origin_x = frame.origin.x;
   const int origin_y = frame.origin.y;
   const float p = progress;
-  for (int idx = 0; idx < ROUNDY_CELL_SIZE; ++idx) {
+  /* skip the border pixels to leave the outer frame empty */
+  const int start_idx = 1;
+  const int end_idx = ROUNDY_CELL_SIZE - 2;
+  for (int idx = start_idx; idx <= end_idx; ++idx) {
     const int from_x = idx;
     const int to_x = (ROUNDY_CELL_SIZE - 1 - idx);
     const int x = origin_x + (int)roundf((1.0f - p) * from_x + p * to_x);

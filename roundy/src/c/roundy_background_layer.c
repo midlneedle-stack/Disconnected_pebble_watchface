@@ -12,7 +12,10 @@ struct RoundyBackgroundLayer {
 static void prv_draw_background_cell(GContext *ctx, int cell_col, int cell_row) {
   const GPoint origin = roundy_cell_origin(cell_col, cell_row);
 
-  for (int idx = 0; idx < ROUNDY_CELL_SIZE; ++idx) {
+  /* leave top/bottom rows empty for the trimmed diagonal look */
+  const int start_idx = 1;
+  const int end_idx = ROUNDY_CELL_SIZE - 2;
+  for (int idx = start_idx; idx <= end_idx; ++idx) {
     graphics_draw_pixel(ctx, GPoint(origin.x + idx, origin.y + idx));
   }
 }
